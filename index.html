@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StartupLens</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="sidebar">
+    <h2>💡 StartupLens</h2>
+    <ul>
+      <li class="active" onclick="showPage('dashboard')">📊 Dashboard</li>
+      <li onclick="showPage('transactions')">💸 Transactions</li>
+      <li onclick="showPage('reports')">📄 Reports</li>
+      <li onclick="showPage('ai')">🤖 AI Chat</li>
+    </ul>
+  </div>
+
+  <div class="main">
+
+    <!-- DASHBOARD PAGE -->
+    <div id="page-dashboard" class="page active-page">
+      <h1>Financial Overview</h1>
+      <div class="cards">
+        <div class="card">
+          <p>Total Income</p>
+          <h2 id="totalIncome">₹0</h2>
+        </div>
+        <div class="card">
+          <p>Total Expenses</p>
+          <h2 id="totalExpenses">₹0</h2>
+        </div>
+        <div class="card">
+          <p>Net Balance</p>
+          <h2 id="netBalance">₹0</h2>
+        </div>
+        <div class="card">
+          <p>Runway Left</p>
+          <h2 id="runway">-- months</h2>
+        </div>
+      </div>
+      <div class="chart-box">
+        <h3>Expense Breakdown</h3>
+        <canvas id="expenseChart"></canvas>
+      </div>
+    </div>
+
+    <!-- TRANSACTIONS PAGE -->
+    <div id="page-transactions" class="page">
+      <h1>Transactions</h1>
+
+      <!-- CSV UPLOAD BOX -->
+      <div class="upload-box">
+        <h3>📂 Bank Statement Upload (CSV)</h3>
+        <p class="upload-hint">CSV mein Date, Description, Debit, Credit, Balance columns hone chahiye</p>
+        <div class="upload-row">
+          <input type="file" id="csvFile" accept=".csv" />
+          <button onclick="uploadCSV()">🤖 AI se Analyze Karo</button>
+        </div>
+        <div id="uploadStatus"></div>
+      </div>
+
+      <!-- MANUAL ADD -->
+      <div class="form-box">
+        <h3>➕ Manually Add Transaction</h3>
+        <div class="form-row">
+          <select id="txType">
+            <option value="income">💰 Income</option>
+            <option value="expense">💸 Expense</option>
+          </select>
+          <input type="text" id="txDesc" placeholder="Description" />
+          <select id="txCategory">
+            <option value="Salary">Salary</option>
+            <option value="Funding">Funding</option>
+            <option value="Freelance">Freelance</option>
+            <option value="Marketing">Marketing</option>
+            <option value="Infra">Infra</option>
+            <option value="Tools">Tools</option>
+            <option value="Misc">Misc</option>
+          </select>
+          <input type="number" id="txAmount" placeholder="Amount (₹)" />
+          <button onclick="addTransaction()">Add</button>
+        </div>
+      </div>
+
+      <!-- TABLE -->
+      <div class="table-box">
+        <h3>📋 All Transactions</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Description</th>
+              <th>Category</th>
+              <th>Amount</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="txTable">
+            <tr><td colspan="6" style="text-align:center; color:#888;">No transactions yet</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- REPORTS PAGE -->
+    <div id="page-reports" class="page">
+      <h1>Reports</h1>
+      <div class="cards">
+        <div class="card">
+          <p>Total Income</p>
+          <h2 id="rIncome">₹0</h2>
+        </div>
+        <div class="card">
+          <p>Total Expenses</p>
+          <h2 id="rExpenses">₹0</h2>
+        </div>
+        <div class="card">
+          <p>Net Profit/Loss</p>
+          <h2 id="rNet">₹0</h2>
+        </div>
+      </div>
+      <div class="chart-box" style="max-width:500px; margin-top:30px;">
+        <h3>Income vs Expenses</h3>
+        <canvas id="reportChart"></canvas>
+      </div>
+    </div>
+
+    <!-- AI CHAT PAGE -->
+    <div id="page-ai" class="page">
+      <h1>🤖 AI Financial Assistant</h1>
+      <div class="chat-box">
+        <div class="chat-messages" id="chatMessages">
+          <div class="msg bot">Namaste! Main aapka AI financial assistant hoon. CSV upload karne ke baad apne finances ke baare mein kuch bhi puchho! 😊</div>
+        </div>
+        <div class="chat-input">
+          <input type="text" id="userInput" placeholder="Kuch puchho... e.g. sabse zyada expense kahan hai?" />
+          <button onclick="sendMessage()">Send</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="config.js"></script>
+  <script src="script.js"></script> 
+</body>
+</html>

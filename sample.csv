@@ -1,0 +1,11 @@
+Date,Description,Debit,Credit,Balance
+2024-01-01,Opening Balance,,,500000
+2024-01-05,Salary Payment,120000,,380000
+2024-01-07,Google Ads Campaign,25000,,355000
+2024-01-10,Client Payment Received,,80000,435000
+2024-01-12,AWS Server Bill,15000,,420000
+2024-01-15,Figma Subscription,8000,,412000
+2024-01-18,Office Supplies,5000,,407000
+2024-01-20,Investor Funding,,200000,607000
+2024-01-22,Team Bonus,30000,,577000
+2024-01-25,Facebook Ads,20000,,557000
