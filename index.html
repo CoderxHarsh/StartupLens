@@ -50,10 +50,10 @@
       <div class="insights-box">
         <div class="insights-header">
           <h3>🧠 AI Insights</h3>
-          <button onclick="analyzeAnomalies()">Analyze Karo</button>
+          <button onclick="analyzeAnomalies()">Analyze</button>
         </div>
         <div id="insightsContent">
-          <p class="insights-hint">Transactions add karne ke baad "Analyze Karo" button dabao!</p>
+          <p class="insights-hint">Add transactions and click "Analyze" button to get AI insights!</p>
         </div>
       </div>
     </div>
@@ -67,7 +67,7 @@
         <p class="upload-hint">CSV mein Date, Description, Debit, Credit, Balance columns hone chahiye</p>
         <div class="upload-row">
           <input type="file" id="csvFile" accept=".csv" />
-          <button onclick="uploadCSV()">🤖 AI se Analyze Karo</button>
+          <button onclick="uploadCSV()">🤖 Analyze with AI</button>
         </div>
         <div id="uploadStatus"></div>
       </div>
@@ -142,10 +142,9 @@
       <h1>🤖 AI Financial Assistant</h1>
       <div class="chat-box">
         <div class="chat-messages" id="chatMessages">
-          <div class="msg bot">Namaste! Main aapka AI financial assistant hoon. CSV upload karne ke baad apne finances ke baare mein kuch bhi puchho! 😊</div>
-        </div>
+          <div class="msg bot">Hello! I'm your AI financial assistant. Upload your bank statement and ask me anything about your finances! 😊</div>        </div>
         <div class="chat-input">
-          <input type="text" id="userInput" placeholder="Kuch puchho... e.g. sabse zyada expense kahan hai?" />
+          <input type="text" id="userInput" placeholder="Ask me anything about your finances..." />
           <button onclick="sendMessage()">Send</button>
         </div>
       </div>
