@@ -1,8 +1,6 @@
 // ========== DATA ==========
 let transactions = [];
 
-// ========== API KEY (config.js se aa rahi hai) ==========
-
 // ========== NAVIGATION ==========
 function showPage(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
@@ -19,11 +17,11 @@ async function uploadCSV() {
   const status = document.getElementById('uploadStatus');
 
   if (!file) {
-    status.innerHTML = '<span class="status-error">⚠️ Pehle CSV file select karo!</span>';
+    status.innerHTML = '<span class="status-error">⚠️ Please select a CSV file first!</span>';
     return;
   }
 
-  status.innerHTML = '<span class="status-loading">🤖 AI analyze kar raha hai... thoda wait karo!</span>';
+  status.innerHTML = '<span class="status-loading">🤖 AI is analyzing your statement... please wait!</span>';
 
   const text = await file.text();
   const lines = text.trim().split('\n');
@@ -35,7 +33,7 @@ async function uploadCSV() {
   const creditIdx = headers.findIndex(h => h.includes('credit') || h.includes('deposit'));
 
   if (descIdx === -1 || (debitIdx === -1 && creditIdx === -1)) {
-    status.innerHTML = '<span class="status-error">❌ CSV format sahi nahi! Date, Description, Debit, Credit columns chahiye.</span>';
+    status.innerHTML = '<span class="status-error">❌ Invalid CSV format! Columns needed: Date, Description, Debit, Credit.</span>';
     return;
   }
 
@@ -51,20 +49,20 @@ async function uploadCSV() {
   }
 
   if (rows.length === 0) {
-    status.innerHTML = '<span class="status-error">❌ Koi valid transactions nahi mili!</span>';
+    status.innerHTML = '<span class="status-error">❌ No valid transactions found in CSV!</span>';
     return;
   }
 
   try {
-    const prompt = `Tum ek financial categorization AI ho.
-Neeche kuch bank transactions hain. Har transaction ke liye:
-1. type: "income" ya "expense" batao
-2. category: inme se ek choose karo — Salary, Funding, Freelance, Marketing, Infra, Tools, Misc
+    const prompt = `You are a financial categorization AI.
+Below are bank transactions. For each transaction:
+1. type: "income" or "expense"
+2. category: choose one — Salary, Funding, Freelance, Marketing, Infra, Tools, Misc
 
 Transactions:
 ${rows.map((r, i) => `${i}. "${r.desc}" | Debit: ${r.debit} | Credit: ${r.credit}`).join('\n')}
 
-Sirf JSON array return karo:
+Return ONLY a JSON array, nothing else:
 [{"index":0,"type":"expense","category":"Marketing"},{"index":1,"type":"income","category":"Funding"}]`;
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -76,7 +74,7 @@ Sirf JSON array return karo:
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
         messages: [
-          { role: 'system', content: 'Tum sirf valid JSON return karte ho, kuch aur nahi.' },
+          { role: 'system', content: 'You only return valid JSON, nothing else.' },
           { role: 'user', content: prompt }
         ],
         max_tokens: 1000
@@ -102,11 +100,11 @@ Sirf JSON array return karo:
 
     renderTable();
     updateDashboard();
-    status.innerHTML = `<span class="status-success">✅ ${categories.length} transactions import ho gayi!</span>`;
+    status.innerHTML = `<span class="status-success">✅ ${categories.length} transactions imported successfully!</span>`;
 
   } catch (err) {
     console.error(err);
-    status.innerHTML = '<span class="status-error">❌ Error aaya! Dobara try karo.</span>';
+    status.innerHTML = '<span class="status-error">❌ Error occurred! Please try again.</span>';
   }
 }
 
@@ -118,7 +116,7 @@ function addTransaction() {
   const amount = parseFloat(document.getElementById('txAmount').value);
 
   if (!desc || !amount || amount <= 0) {
-    alert('Description aur amount bharo!');
+    alert('Please fill in description and amount!');
     return;
   }
 
@@ -200,9 +198,7 @@ function updateDashboard() {
     options: {
       responsive: true,
       aspectRatio: 2,
-      plugins: {
-        legend: { display: false }
-      },
+      plugins: { legend: { display: false } },
       scales: {
         y: {
           beginAtZero: true,
@@ -264,11 +260,11 @@ async function analyzeAnomalies() {
   const content = document.getElementById('insightsContent');
 
   if (transactions.length === 0) {
-    content.innerHTML = '<p class="insights-hint">Pehle kuch transactions add karo!</p>';
+    content.innerHTML = '<p class="insights-hint">Please add some transactions first!</p>';
     return;
   }
 
-  content.innerHTML = '<p class="insight-loading">🧠 AI analyze kar raha hai...</p>';
+  content.innerHTML = '<p class="insight-loading">🧠 AI is analyzing your finances...</p>';
 
   const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
@@ -278,28 +274,28 @@ async function analyzeAnomalies() {
     categories[t.category] = (categories[t.category] || 0) + t.amount;
   });
 
-  const prompt = `Tum ek expert startup financial analyst ho.
+  const prompt = `You are an expert startup financial analyst.
 
-Startup ka financial data:
+Startup financial data:
 - Total Income: ₹${totalIncome.toLocaleString('en-IN')}
 - Total Expenses: ₹${totalExpenses.toLocaleString('en-IN')}
 - Net Balance: ₹${(totalIncome - totalExpenses).toLocaleString('en-IN')}
 - Category wise expenses: ${JSON.stringify(categories)}
 - All transactions: ${JSON.stringify(transactions)}
 
-3-4 key insights do:
-1. Kaunsi category unusual hai?
-2. Income vs expense ratio?
-3. Koi red flags?
-4. Ek actionable suggestion
+Give 3-4 key insights in English:
+1. Which category has unusual spending?
+2. How is the income vs expense ratio?
+3. Any red flags?
+4. One actionable suggestion
 
-JSON format mein return karo:
+Return ONLY JSON, nothing else:
 [
   {"type": "warning", "insight": "..."},
   {"type": "good", "insight": "..."},
   {"type": "info", "insight": "..."}
 ]
-Sirf JSON, kuch aur nahi.`;
+type must be "warning", "good", or "info" only.`;
 
   try {
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -311,7 +307,7 @@ Sirf JSON, kuch aur nahi.`;
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
         messages: [
-          { role: 'system', content: 'Tum sirf valid JSON return karte ho.' },
+          { role: 'system', content: 'You only return valid JSON, nothing else.' },
           { role: 'user', content: prompt }
         ],
         max_tokens: 800
@@ -333,7 +329,7 @@ Sirf JSON, kuch aur nahi.`;
 
   } catch (err) {
     console.error(err);
-    content.innerHTML = '<p class="insights-hint">Error aaya! Dobara try karo.</p>';
+    content.innerHTML = '<p class="insights-hint">Error occurred! Please try again.</p>';
   }
 }
 
@@ -347,19 +343,19 @@ async function sendMessage() {
   messages.innerHTML += `<div class="msg user">${userText}</div>`;
   input.value = '';
   messages.scrollTop = messages.scrollHeight;
-  messages.innerHTML += `<div class="msg bot" id="thinking">Soch raha hoon... 🤔</div>`;
+  messages.innerHTML += `<div class="msg bot" id="thinking">Thinking... 🤔</div>`;
   messages.scrollTop = messages.scrollHeight;
 
   const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
 
-  const context = `Tum ek startup financial assistant ho.
-Current data:
+  const context = `You are a startup financial assistant. Always respond in English only.
+Current financial data:
 - Total Income: ₹${totalIncome.toLocaleString('en-IN')}
 - Total Expenses: ₹${totalExpenses.toLocaleString('en-IN')}
 - Net Balance: ₹${(totalIncome - totalExpenses).toLocaleString('en-IN')}
 - Transactions: ${JSON.stringify(transactions.slice(-20))}
-Short aur clear answers do Hindi ya English mein.`;
+Give short and clear answers in English.`;
 
   try {
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -379,14 +375,14 @@ Short aur clear answers do Hindi ya English mein.`;
     });
 
     const data = await response.json();
-    const reply = data?.choices?.[0]?.message?.content || 'Kuch samajh nahi aaya!';
+    const reply = data?.choices?.[0]?.message?.content || 'Could not understand. Please try again!';
     document.getElementById('thinking').remove();
     messages.innerHTML += `<div class="msg bot">${reply}</div>`;
     messages.scrollTop = messages.scrollHeight;
 
   } catch (err) {
     document.getElementById('thinking').remove();
-    messages.innerHTML += `<div class="msg bot">Error aaya! 😅</div>`;
+    messages.innerHTML += `<div class="msg bot">Error occurred! 😅</div>`;
   }
 }
 
