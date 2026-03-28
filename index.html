@@ -41,9 +41,20 @@
           <h2 id="runway">-- months</h2>
         </div>
       </div>
+
       <div class="chart-box">
         <h3>Expense Breakdown</h3>
         <canvas id="expenseChart"></canvas>
+      </div>
+
+      <div class="insights-box">
+        <div class="insights-header">
+          <h3>🧠 AI Insights</h3>
+          <button onclick="analyzeAnomalies()">Analyze Karo</button>
+        </div>
+        <div id="insightsContent">
+          <p class="insights-hint">Transactions add karne ke baad "Analyze Karo" button dabao!</p>
+        </div>
       </div>
     </div>
 
@@ -51,7 +62,6 @@
     <div id="page-transactions" class="page">
       <h1>Transactions</h1>
 
-      <!-- CSV UPLOAD BOX -->
       <div class="upload-box">
         <h3>📂 Bank Statement Upload (CSV)</h3>
         <p class="upload-hint">CSV mein Date, Description, Debit, Credit, Balance columns hone chahiye</p>
@@ -62,7 +72,6 @@
         <div id="uploadStatus"></div>
       </div>
 
-      <!-- MANUAL ADD -->
       <div class="form-box">
         <h3>➕ Manually Add Transaction</h3>
         <div class="form-row">
@@ -85,7 +94,6 @@
         </div>
       </div>
 
-      <!-- TABLE -->
       <div class="table-box">
         <h3>📋 All Transactions</h3>
         <table>
@@ -100,7 +108,7 @@
             </tr>
           </thead>
           <tbody id="txTable">
-            <tr><td colspan="6" style="text-align:center; color:#888;">No transactions yet</td></tr>
+            <tr><td colspan="6" style="text-align:center; color:rgba(255,255,255,0.4); padding:20px;">No transactions yet</td></tr>
           </tbody>
         </table>
       </div>
@@ -147,6 +155,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="config.js"></script>
-  <script src="script.js"></script> 
+  <script src="script.js"></script>
 </body>
 </html>

@@ -1,6 +1,7 @@
 // ========== DATA ==========
 let transactions = [];
 
+// ========== API KEY (config.js se aa rahi hai) ==========
 
 // ========== NAVIGATION ==========
 function showPage(page) {
@@ -28,7 +29,6 @@ async function uploadCSV() {
   const lines = text.trim().split('\n');
   const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
 
-  // Column indexes dhundho
   const dateIdx = headers.findIndex(h => h.includes('date'));
   const descIdx = headers.findIndex(h => h.includes('desc') || h.includes('narration') || h.includes('particular'));
   const debitIdx = headers.findIndex(h => h.includes('debit') || h.includes('withdrawal'));
@@ -39,7 +39,6 @@ async function uploadCSV() {
     return;
   }
 
-  // Rows parse karo
   const rows = [];
   for (let i = 1; i < lines.length; i++) {
     const cols = lines[i].split(',').map(c => c.trim());
@@ -47,18 +46,15 @@ async function uploadCSV() {
     const debit = parseFloat(cols[debitIdx]) || 0;
     const credit = parseFloat(cols[creditIdx]) || 0;
     const date = cols[dateIdx] || '';
-
     if (!desc || (debit === 0 && credit === 0)) continue;
-
     rows.push({ date, desc, debit, credit });
   }
 
   if (rows.length === 0) {
-    status.innerHTML = '<span class="status-error">❌ Koi valid transactions nahi mili CSV mein!</span>';
+    status.innerHTML = '<span class="status-error">❌ Koi valid transactions nahi mili!</span>';
     return;
   }
 
-  // AI se categories lo
   try {
     const prompt = `Tum ek financial categorization AI ho.
 Neeche kuch bank transactions hain. Har transaction ke liye:
@@ -68,7 +64,7 @@ Neeche kuch bank transactions hain. Har transaction ke liye:
 Transactions:
 ${rows.map((r, i) => `${i}. "${r.desc}" | Debit: ${r.debit} | Credit: ${r.credit}`).join('\n')}
 
-Sirf JSON array return karo, kuch aur mat likho. Format:
+Sirf JSON array return karo:
 [{"index":0,"type":"expense","category":"Marketing"},{"index":1,"type":"income","category":"Funding"}]`;
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -89,12 +85,9 @@ Sirf JSON array return karo, kuch aur mat likho. Format:
 
     const data = await response.json();
     let aiText = data?.choices?.[0]?.message?.content || '[]';
-
-    // JSON clean karo
     aiText = aiText.replace(/```json|```/g, '').trim();
     const categories = JSON.parse(aiText);
 
-    // Transactions mein add karo
     categories.forEach(c => {
       const row = rows[c.index];
       if (!row) return;
@@ -109,12 +102,11 @@ Sirf JSON array return karo, kuch aur mat likho. Format:
 
     renderTable();
     updateDashboard();
-
-    status.innerHTML = `<span class="status-success">✅ ${categories.length} transactions successfully import ho gayi! Dashboard update ho gaya.</span>`;
+    status.innerHTML = `<span class="status-success">✅ ${categories.length} transactions import ho gayi!</span>`;
 
   } catch (err) {
     console.error(err);
-    status.innerHTML = '<span class="status-error">❌ AI error aaya! API key check karo ya dobara try karo.</span>';
+    status.innerHTML = '<span class="status-error">❌ Error aaya! Dobara try karo.</span>';
   }
 }
 
@@ -130,7 +122,11 @@ function addTransaction() {
     return;
   }
 
-  transactions.push({ date: new Date().toLocaleDateString('en-IN'), type, desc, category, amount });
+  transactions.push({
+    date: new Date().toLocaleDateString('en-IN'),
+    type, desc, category, amount
+  });
+
   document.getElementById('txDesc').value = '';
   document.getElementById('txAmount').value = '';
   renderTable();
@@ -147,7 +143,7 @@ function deleteTransaction(index) {
 function renderTable() {
   const tbody = document.getElementById('txTable');
   if (transactions.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#888;">No transactions yet</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:rgba(255,255,255,0.4); padding:20px;">No transactions yet</td></tr>';
     return;
   }
   tbody.innerHTML = transactions.map((tx, i) => `
@@ -169,16 +165,14 @@ function updateDashboard() {
   const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   const netBalance = totalIncome - totalExpenses;
-  const monthlyBurn = totalExpenses / (transactions.length > 0 ? 1 : 1);
   const runway = totalExpenses > 0 ? (netBalance / (totalExpenses / 12)).toFixed(1) : '--';
 
   document.getElementById('totalIncome').textContent = '₹' + totalIncome.toLocaleString('en-IN');
   document.getElementById('totalExpenses').textContent = '₹' + totalExpenses.toLocaleString('en-IN');
   document.getElementById('netBalance').textContent = '₹' + netBalance.toLocaleString('en-IN');
-  document.getElementById('netBalance').style.color = netBalance >= 0 ? '#2e7d32' : '#c62828';
+  document.getElementById('netBalance').style.color = netBalance >= 0 ? '#34d399' : '#f87171';
   document.getElementById('runway').textContent = runway !== '--' ? runway + ' months' : '-- months';
 
-  // Chart
   const categories = {};
   transactions.filter(t => t.type === 'expense').forEach(t => {
     categories[t.category] = (categories[t.category] || 0) + t.amount;
@@ -186,7 +180,7 @@ function updateDashboard() {
 
   const labels = Object.keys(categories);
   const data = Object.values(categories);
-  const colors = ['#e94560', '#0f3460', '#16213e', '#533483', '#05c46b', '#f5a623', '#7b68ee'];
+  const colors = ['#a78bfa', '#818cf8', '#6366f1', '#8b5cf6', '#34d399', '#fbbf24', '#f87171'];
 
   const ctx = document.getElementById('expenseChart').getContext('2d');
   if (expenseChart) expenseChart.destroy();
@@ -206,11 +200,21 @@ function updateDashboard() {
     options: {
       responsive: true,
       aspectRatio: 2,
-      plugins: { legend: { display: false } },
+      plugins: {
+        legend: { display: false }
+      },
       scales: {
         y: {
           beginAtZero: true,
-          ticks: { callback: val => '₹' + val.toLocaleString('en-IN') }
+          ticks: {
+            color: 'rgba(255,255,255,0.5)',
+            callback: val => '₹' + val.toLocaleString('en-IN')
+          },
+          grid: { color: 'rgba(255,255,255,0.05)' }
+        },
+        x: {
+          ticks: { color: 'rgba(255,255,255,0.5)' },
+          grid: { display: false }
         }
       }
     }
@@ -228,7 +232,7 @@ function updateReportChart() {
   document.getElementById('rIncome').textContent = '₹' + totalIncome.toLocaleString('en-IN');
   document.getElementById('rExpenses').textContent = '₹' + totalExpenses.toLocaleString('en-IN');
   document.getElementById('rNet').textContent = '₹' + net.toLocaleString('en-IN');
-  document.getElementById('rNet').style.color = net >= 0 ? '#2e7d32' : '#c62828';
+  document.getElementById('rNet').style.color = net >= 0 ? '#34d399' : '#f87171';
 
   const ctx2 = document.getElementById('reportChart').getContext('2d');
   if (reportChart) reportChart.destroy();
@@ -239,15 +243,98 @@ function updateReportChart() {
       labels: ['Income', 'Expenses'],
       datasets: [{
         data: [totalIncome, totalExpenses],
-        backgroundColor: ['#05c46b', '#e94560'],
+        backgroundColor: ['#34d399', '#f87171'],
         borderWidth: 0,
       }]
     },
     options: {
       responsive: true,
-      plugins: { legend: { position: 'bottom' } }
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: 'rgba(255,255,255,0.6)' }
+        }
+      }
     }
   });
+}
+
+// ========== AI ANOMALY DETECTION ==========
+async function analyzeAnomalies() {
+  const content = document.getElementById('insightsContent');
+
+  if (transactions.length === 0) {
+    content.innerHTML = '<p class="insights-hint">Pehle kuch transactions add karo!</p>';
+    return;
+  }
+
+  content.innerHTML = '<p class="insight-loading">🧠 AI analyze kar raha hai...</p>';
+
+  const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+
+  const categories = {};
+  transactions.filter(t => t.type === 'expense').forEach(t => {
+    categories[t.category] = (categories[t.category] || 0) + t.amount;
+  });
+
+  const prompt = `Tum ek expert startup financial analyst ho.
+
+Startup ka financial data:
+- Total Income: ₹${totalIncome.toLocaleString('en-IN')}
+- Total Expenses: ₹${totalExpenses.toLocaleString('en-IN')}
+- Net Balance: ₹${(totalIncome - totalExpenses).toLocaleString('en-IN')}
+- Category wise expenses: ${JSON.stringify(categories)}
+- All transactions: ${JSON.stringify(transactions)}
+
+3-4 key insights do:
+1. Kaunsi category unusual hai?
+2. Income vs expense ratio?
+3. Koi red flags?
+4. Ek actionable suggestion
+
+JSON format mein return karo:
+[
+  {"type": "warning", "insight": "..."},
+  {"type": "good", "insight": "..."},
+  {"type": "info", "insight": "..."}
+]
+Sirf JSON, kuch aur nahi.`;
+
+  try {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'system', content: 'Tum sirf valid JSON return karte ho.' },
+          { role: 'user', content: prompt }
+        ],
+        max_tokens: 800
+      })
+    });
+
+    const data = await response.json();
+    let aiText = data?.choices?.[0]?.message?.content || '[]';
+    aiText = aiText.replace(/```json|```/g, '').trim();
+    const insights = JSON.parse(aiText);
+
+    const icons = { warning: '⚠️', good: '✅', info: '💡' };
+
+    content.innerHTML = insights.map(i => `
+      <div class="insight-card ${i.type}">
+        ${icons[i.type] || '💡'} ${i.insight}
+      </div>
+    `).join('');
+
+  } catch (err) {
+    console.error(err);
+    content.innerHTML = '<p class="insights-hint">Error aaya! Dobara try karo.</p>';
+  }
 }
 
 // ========== AI CHAT ==========
@@ -267,7 +354,7 @@ async function sendMessage() {
   const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
 
   const context = `Tum ek startup financial assistant ho.
-Current financial data:
+Current data:
 - Total Income: ₹${totalIncome.toLocaleString('en-IN')}
 - Total Expenses: ₹${totalExpenses.toLocaleString('en-IN')}
 - Net Balance: ₹${(totalIncome - totalExpenses).toLocaleString('en-IN')}
