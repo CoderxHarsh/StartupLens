@@ -14,6 +14,7 @@
       <li class="active" onclick="showPage('dashboard')">📊 Dashboard</li>
       <li onclick="showPage('transactions')">💸 Transactions</li>
       <li onclick="showPage('reports')">📄 Reports</li>
+      <li onclick="showPage('forecast')">📈 Forecast</li>
       <li onclick="showPage('ai')">🤖 AI Chat</li>
     </ul>
   </div>
@@ -53,7 +54,7 @@
           <button onclick="analyzeAnomalies()">Analyze</button>
         </div>
         <div id="insightsContent">
-          <p class="insights-hint">Add transactions and click "Analyze" button to get AI insights!</p>
+          <p class="insights-hint">Add transactions and click "Analyze" to get AI insights!</p>
         </div>
       </div>
     </div>
@@ -64,7 +65,7 @@
 
       <div class="upload-box">
         <h3>📂 Bank Statement Upload (CSV)</h3>
-        <p class="upload-hint">CSV mein Date, Description, Debit, Credit, Balance columns hone chahiye</p>
+        <p class="upload-hint">CSV must have: Date, Description, Debit, Credit, Balance columns</p>
         <div class="upload-row">
           <input type="file" id="csvFile" accept=".csv" />
           <button onclick="uploadCSV()">🤖 Analyze with AI</button>
@@ -137,12 +138,65 @@
       </div>
     </div>
 
+    <!-- FORECAST PAGE -->
+    <div id="page-forecast" class="page">
+      <h1>📈 Expense Forecast</h1>
+
+      <div class="forecast-info">
+        <p>Enter your monthly expenses below — the ML model (Linear Regression) will predict the next 3 months!</p>
+      </div>
+
+      <div class="form-box">
+        <h3>📅 Monthly Expenses</h3>
+        <div class="form-row">
+          <input type="number" id="m1" placeholder="Month 1 (₹)" />
+          <input type="number" id="m2" placeholder="Month 2 (₹)" />
+          <input type="number" id="m3" placeholder="Month 3 (₹)" />
+          <input type="number" id="m4" placeholder="Month 4 (₹)" />
+          <input type="number" id="m5" placeholder="Month 5 (₹)" />
+          <input type="number" id="m6" placeholder="Month 6 (₹)" />
+          <button onclick="runForecast()">🔮 Predict</button>
+        </div>
+      </div>
+
+      <div id="forecastResult" style="display:none;">
+        <div class="cards" style="margin-bottom:25px;">
+          <div class="card">
+            <p>Next Month</p>
+            <h2 id="pred1">₹0</h2>
+          </div>
+          <div class="card">
+            <p>Month After</p>
+            <h2 id="pred2">₹0</h2>
+          </div>
+          <div class="card">
+            <p>3rd Month</p>
+            <h2 id="pred3">₹0</h2>
+          </div>
+          <div class="card">
+            <p>Model Accuracy (R²)</p>
+            <h2 id="r2score">0</h2>
+          </div>
+        </div>
+
+        <div class="chart-box" style="max-width:700px;">
+          <h3>Actual vs Predicted Expenses</h3>
+          <canvas id="forecastChart"></canvas>
+        </div>
+
+        <div class="insight-card info" style="margin-top:20px; max-width:700px;">
+          <span id="forecastInsight"></span>
+        </div>
+      </div>
+    </div>
+
     <!-- AI CHAT PAGE -->
     <div id="page-ai" class="page">
       <h1>🤖 AI Financial Assistant</h1>
       <div class="chat-box">
         <div class="chat-messages" id="chatMessages">
-          <div class="msg bot">Hello! I'm your AI financial assistant. Upload your bank statement and ask me anything about your finances! 😊</div>        </div>
+          <div class="msg bot">Hello! I'm your AI financial assistant. Upload your bank statement and ask me anything about your finances! 😊</div>
+        </div>
         <div class="chat-input">
           <input type="text" id="userInput" placeholder="Ask me anything about your finances..." />
           <button onclick="sendMessage()">Send</button>

@@ -6,12 +6,12 @@ function showPage(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
   document.querySelectorAll('.sidebar ul li').forEach(l => l.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active-page');
-  const pages = ['dashboard', 'transactions', 'reports', 'ai'];
+  const pages = ['dashboard', 'transactions', 'reports', 'forecast', 'ai'];
   document.querySelectorAll('.sidebar ul li')[pages.indexOf(page)].classList.add('active');
   if (page === 'reports') updateReportChart();
 }
 
-// ========== CSV UPLOAD + AI CATEGORIZE ==========
+// ========== CSV UPLOAD ==========
 async function uploadCSV() {
   const file = document.getElementById('csvFile').files[0];
   const status = document.getElementById('uploadStatus');
@@ -33,7 +33,7 @@ async function uploadCSV() {
   const creditIdx = headers.findIndex(h => h.includes('credit') || h.includes('deposit'));
 
   if (descIdx === -1 || (debitIdx === -1 && creditIdx === -1)) {
-    status.innerHTML = '<span class="status-error">❌ Invalid CSV format! Columns needed: Date, Description, Debit, Credit.</span>';
+    status.innerHTML = '<span class="status-error">❌ Invalid CSV format!</span>';
     return;
   }
 
@@ -49,21 +49,21 @@ async function uploadCSV() {
   }
 
   if (rows.length === 0) {
-    status.innerHTML = '<span class="status-error">❌ No valid transactions found in CSV!</span>';
+    status.innerHTML = '<span class="status-error">❌ No valid transactions found!</span>';
     return;
   }
 
   try {
     const prompt = `You are a financial categorization AI.
-Below are bank transactions. For each transaction:
+For each transaction below, return:
 1. type: "income" or "expense"
-2. category: choose one — Salary, Funding, Freelance, Marketing, Infra, Tools, Misc
+2. category: Salary, Funding, Freelance, Marketing, Infra, Tools, or Misc
 
 Transactions:
 ${rows.map((r, i) => `${i}. "${r.desc}" | Debit: ${r.debit} | Credit: ${r.credit}`).join('\n')}
 
-Return ONLY a JSON array, nothing else:
-[{"index":0,"type":"expense","category":"Marketing"},{"index":1,"type":"income","category":"Funding"}]`;
+Return ONLY a JSON array:
+[{"index":0,"type":"expense","category":"Marketing"}]`;
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -100,11 +100,10 @@ Return ONLY a JSON array, nothing else:
 
     renderTable();
     updateDashboard();
-    status.innerHTML = `<span class="status-success">✅ ${categories.length} transactions imported successfully!</span>`;
+    status.innerHTML = `<span class="status-success">✅ ${categories.length} transactions imported!</span>`;
 
   } catch (err) {
-    console.error(err);
-    status.innerHTML = '<span class="status-error">❌ Error occurred! Please try again.</span>';
+    status.innerHTML = '<span class="status-error">❌ Error! Please try again.</span>';
   }
 }
 
@@ -156,7 +155,7 @@ function renderTable() {
   `).join('');
 }
 
-// ========== DASHBOARD UPDATE ==========
+// ========== DASHBOARD ==========
 let expenseChart = null;
 
 function updateDashboard() {
@@ -202,10 +201,7 @@ function updateDashboard() {
       scales: {
         y: {
           beginAtZero: true,
-          ticks: {
-            color: 'rgba(255,255,255,0.5)',
-            callback: val => '₹' + val.toLocaleString('en-IN')
-          },
+          ticks: { color: 'rgba(255,255,255,0.5)', callback: val => '₹' + val.toLocaleString('en-IN') },
           grid: { color: 'rgba(255,255,255,0.05)' }
         },
         x: {
@@ -246,13 +242,105 @@ function updateReportChart() {
     options: {
       responsive: true,
       plugins: {
-        legend: {
-          position: 'bottom',
-          labels: { color: 'rgba(255,255,255,0.6)' }
-        }
+        legend: { position: 'bottom', labels: { color: 'rgba(255,255,255,0.6)' } }
       }
     }
   });
+}
+
+// ========== LINEAR REGRESSION FORECAST ==========
+let forecastChart = null;
+
+async function runForecast() {
+  const expenses = [];
+  for (let i = 1; i <= 6; i++) {
+    const val = parseFloat(document.getElementById('m' + i).value);
+    if (val && val > 0) expenses.push(val);
+  }
+
+  if (expenses.length < 2) {
+    alert('Please enter at least 2 months of expenses!');
+    return;
+  }
+
+  try {
+    const response = await fetch('http://127.0.0.1:5000/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ expenses })
+    });
+
+    const data = await response.json();
+
+    // Show result cards
+    document.getElementById('forecastResult').style.display = 'block';
+    document.getElementById('pred1').textContent = '₹' + Math.round(data.predictions[0]).toLocaleString('en-IN');
+    document.getElementById('pred2').textContent = '₹' + Math.round(data.predictions[1]).toLocaleString('en-IN');
+    document.getElementById('pred3').textContent = '₹' + Math.round(data.predictions[2]).toLocaleString('en-IN');
+    document.getElementById('r2score').textContent = (data.r2_score * 100).toFixed(0) + '%';
+
+    // Insight
+    const trend = data.slope > 0 ? `increasing by ₹${Math.abs(Math.round(data.slope)).toLocaleString('en-IN')} per month` : `decreasing by ₹${Math.abs(Math.round(data.slope)).toLocaleString('en-IN')} per month`;
+    document.getElementById('forecastInsight').textContent = `💡 Your expenses are ${trend}. Model accuracy: ${(data.r2_score * 100).toFixed(0)}% — ${data.r2_score > 0.7 ? 'High confidence prediction!' : 'Add more months for better accuracy.'}`;
+
+    // Chart
+    const ctx3 = document.getElementById('forecastChart').getContext('2d');
+    if (forecastChart) forecastChart.destroy();
+
+    const actualLabels = expenses.map((_, i) => `Month ${i + 1}`);
+    const predictedLabels = ['Next Month', 'Month +2', 'Month +3'];
+    const allLabels = [...actualLabels, ...predictedLabels];
+
+    forecastChart = new Chart(ctx3, {
+      type: 'line',
+      data: {
+        labels: allLabels,
+        datasets: [
+          {
+            label: 'Actual Expenses',
+            data: [...expenses, null, null, null],
+            borderColor: '#a78bfa',
+            backgroundColor: 'rgba(167,139,250,0.1)',
+            borderWidth: 2,
+            pointBackgroundColor: '#a78bfa',
+            pointRadius: 5,
+            tension: 0.4,
+          },
+          {
+            label: 'Predicted Expenses',
+            data: [...expenses.map(() => null), ...data.predictions.map(p => Math.round(p))],
+            borderColor: '#34d399',
+            backgroundColor: 'rgba(52,211,153,0.1)',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            pointBackgroundColor: '#34d399',
+            pointRadius: 5,
+            tension: 0.4,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { labels: { color: 'rgba(255,255,255,0.7)' } }
+        },
+        scales: {
+          y: {
+            beginAtZero: false,
+            ticks: { color: 'rgba(255,255,255,0.5)', callback: val => '₹' + val.toLocaleString('en-IN') },
+            grid: { color: 'rgba(255,255,255,0.05)' }
+          },
+          x: {
+            ticks: { color: 'rgba(255,255,255,0.5)' },
+            grid: { display: false }
+          }
+        }
+      }
+    });
+
+  } catch (err) {
+    alert('Error connecting to ML backend! Make sure Flask server is running on port 5000.');
+  }
 }
 
 // ========== AI ANOMALY DETECTION ==========
@@ -268,7 +356,6 @@ async function analyzeAnomalies() {
 
   const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-
   const categories = {};
   transactions.filter(t => t.type === 'expense').forEach(t => {
     categories[t.category] = (categories[t.category] || 0) + t.amount;
@@ -276,26 +363,18 @@ async function analyzeAnomalies() {
 
   const prompt = `You are an expert startup financial analyst.
 
-Startup financial data:
+Financial data:
 - Total Income: ₹${totalIncome.toLocaleString('en-IN')}
 - Total Expenses: ₹${totalExpenses.toLocaleString('en-IN')}
 - Net Balance: ₹${(totalIncome - totalExpenses).toLocaleString('en-IN')}
 - Category wise expenses: ${JSON.stringify(categories)}
-- All transactions: ${JSON.stringify(transactions)}
 
-Give 3-4 key insights in English:
-1. Which category has unusual spending?
-2. How is the income vs expense ratio?
-3. Any red flags?
-4. One actionable suggestion
-
-Return ONLY JSON, nothing else:
+Give 3-4 insights in English. Return ONLY JSON:
 [
   {"type": "warning", "insight": "..."},
   {"type": "good", "insight": "..."},
   {"type": "info", "insight": "..."}
-]
-type must be "warning", "good", or "info" only.`;
+]`;
 
   try {
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -307,7 +386,7 @@ type must be "warning", "good", or "info" only.`;
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
         messages: [
-          { role: 'system', content: 'You only return valid JSON, nothing else.' },
+          { role: 'system', content: 'You only return valid JSON.' },
           { role: 'user', content: prompt }
         ],
         max_tokens: 800
@@ -318,18 +397,14 @@ type must be "warning", "good", or "info" only.`;
     let aiText = data?.choices?.[0]?.message?.content || '[]';
     aiText = aiText.replace(/```json|```/g, '').trim();
     const insights = JSON.parse(aiText);
-
     const icons = { warning: '⚠️', good: '✅', info: '💡' };
 
     content.innerHTML = insights.map(i => `
-      <div class="insight-card ${i.type}">
-        ${icons[i.type] || '💡'} ${i.insight}
-      </div>
+      <div class="insight-card ${i.type}">${icons[i.type] || '💡'} ${i.insight}</div>
     `).join('');
 
   } catch (err) {
-    console.error(err);
-    content.innerHTML = '<p class="insights-hint">Error occurred! Please try again.</p>';
+    content.innerHTML = '<p class="insights-hint">Error! Please try again.</p>';
   }
 }
 
@@ -350,7 +425,7 @@ async function sendMessage() {
   const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
 
   const context = `You are a startup financial assistant. Always respond in English only.
-Current financial data:
+Current data:
 - Total Income: ₹${totalIncome.toLocaleString('en-IN')}
 - Total Expenses: ₹${totalExpenses.toLocaleString('en-IN')}
 - Net Balance: ₹${(totalIncome - totalExpenses).toLocaleString('en-IN')}

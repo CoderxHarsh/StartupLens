@@ -495,3 +495,13 @@ tr:hover td { background: rgba(255,255,255,0.03); }
   font-size: 14px;
   font-weight: 500;
 }
+/* FORECAST PAGE */
+.forecast-info {
+  background: rgba(167, 139, 250, 0.1);
+  border: 1px solid rgba(167, 139, 250, 0.3);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 25px;
+  color: rgba(255,255,255,0.7);
+  font-size: 14px;
+}
